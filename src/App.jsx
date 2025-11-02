@@ -1,7 +1,154 @@
-// App.jsx — fixed: shows per-route totals and a separate grand totals table
 import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
 
+// Header component
+function HeaderComponent() {
+  return (
+    <header
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: 80,
+        backgroundColor: '#f5f5f5',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        zIndex: 1000
+      }}
+    >
+      <h1 style={{ fontSize: '32px', margin: 0 }}>Totes Calculator</h1>
+    </header>
+  );
+}
+
+// Data component (with modern card & table styles)
+function DataComponent({ routesInfo, grandTotals, onFileChange, onClear }) {
+  return (
+    <div
+      style={{
+        flex: 1,
+        maxWidth: 800,
+        display: 'flex',
+        flexDirection: 'column',
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+        height: '80vh',
+        overflow: 'hidden',
+        padding: '32px', 
+        paddingTop: '32px', 
+        marginTop: 24, 
+        marginLeft: 24
+      }}
+    >
+      {/* Title */}
+      <h2 style={{ fontSize: 24, marginBottom: 16 }}>Totes Used</h2>
+
+      {/* File input + Clear */}
+      <div style={{ marginBottom: 16, flexShrink: 0 }}>
+        <input type="file" accept=".csv" multiple onChange={onFileChange} />
+        <button
+          onClick={onClear}
+          disabled={Object.keys(routesInfo).length === 0}
+          style={{
+            padding: '8px 14px',
+            marginLeft: 12,
+            borderRadius: 6,
+            border: 'none',
+            backgroundColor: '#007bff',
+            color: '#fff',
+            cursor: 'pointer',
+            transition: 'background-color 0.2s'
+          }}
+        >
+          Clear uploaded data
+        </button>
+      </div>
+
+      {/* Scrollable Tables */}
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        {Object.keys(routesInfo).length > 0 ? (
+          <div style={{ overflowX: 'auto' }}>
+            {/* Routes Table */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 16 }}>
+              <thead>
+                <tr style={{ position: 'sticky', top: 0, backgroundColor: '#f9f9f9', zIndex: 1 }}>
+                  <th style={thStyle}>Route</th>
+                  <th style={thStyle}>Ambient totes</th>
+                  <th style={thStyle}>Chilled totes</th>
+                  <th style={thStyle}>Freezer totes</th>
+                  <th style={thStyle}>Total totes</th>
+                  <th style={thStyle}>Duplicates included</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(routesInfo).map(([route, data], i) => (
+                  <tr
+                    key={i}
+                    style={{
+                      backgroundColor: i % 2 === 0 ? '#fafafa' : '#fff',
+                      transition: 'background-color 0.2s',
+                      cursor: 'default'
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e6f0ff')}
+                    onMouseLeave={(e) =>
+                      (e.currentTarget.style.backgroundColor = i % 2 === 0 ? '#fafafa' : '#fff')
+                    }
+                  >
+                    <td style={tdStyle}>{route}</td>
+                    <td style={tdStyle}>{data.totals.ambient}</td>
+                    <td style={tdStyle}>{data.totals.chilled}</td>
+                    <td style={tdStyle}>{data.totals.freezer}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>{data.totals.total}</td>
+                    <td style={{ ...tdStyle, color: data.totals.duplicateCount > 0 ? 'orange' : '#666' }}>
+                      {data.totals.duplicateCount > 0
+                        ? `${data.totals.duplicateCount} duplicate${data.totals.duplicateCount > 1 ? 's' : ''}`
+                        : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Grand Totals Table */}
+            <section style={{ marginTop: 32 }}>
+              <h3 style={{ fontSize: 20 }}>Grand Totals</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
+                <thead>
+                  <tr style={{ position: 'sticky', top: 0, backgroundColor: '#f9f9f9', zIndex: 1 }}>
+                    <th style={thStyle}>Ambient totes</th>
+                    <th style={thStyle}>Chilled totes</th>
+                    <th style={thStyle}>Freezer totes</th>
+                    <th style={thStyle}>Total totes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ backgroundColor: '#fafafa' }}>
+                    <td style={tdStyle}>{grandTotals.ambient}</td>
+                    <td style={tdStyle}>{grandTotals.chilled}</td>
+                    <td style={tdStyle}>{grandTotals.freezer}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600 }}>{grandTotals.total}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+          </div>
+        ) : (
+          <p style={{ color: '#777' }}>No data available yet.</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Styles for table cells
+const thStyle = { padding: '10px 12px', borderBottom: '1px solid #ddd', textAlign: 'left' };
+const tdStyle = { padding: '10px 12px', borderBottom: '1px solid #eee' };
+
+// Main App component
 export default function App() {
   const [routesInfo, setRoutesInfo] = useState({});
   const [grandTotals, setGrandTotals] = useState({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
@@ -31,7 +178,7 @@ export default function App() {
       }
       if (seenConsignments.has(consignment) || seenGlobal.has(consignment)) {
         duplicateCount++;
-        return; // skip duplicates
+        return;
       }
       seenConsignments.add(consignment);
       seenGlobal.add(consignment);
@@ -59,10 +206,8 @@ export default function App() {
     let dispatch = row['Dispatch time'] || row['dispatch time'] || row['Dispatch Time'] || '';
     const shipment = row['Shipment'] || row['shipment'] || '';
     if (/route-/i.test(shipment)) return 'Vans';
-
     const timeMatch = dispatch.match(/(\d{1,2}:\d{2})/);
     const dispatchTime = timeMatch ? timeMatch[1] : null;
-
     if (!dispatchTime) return 'Spoke';
     if (['11:15', '11:16', '11:17'].includes(dispatchTime)) return 'Ottawa Spoke';
     if (dispatchTime === '2:30') return 'Etobicoke Spoke 1';
@@ -70,7 +215,6 @@ export default function App() {
     if (dispatchTime === '5:30') return 'Etobicoke Spoke 3';
     if (dispatchTime === '8:45') return 'Etobicoke Spoke 4';
     if (dispatchTime === '9:15') return 'Etobicoke Spoke 5';
-
     return 'Spoke';
   }
 
@@ -85,7 +229,6 @@ export default function App() {
           const rows = results.data;
           const newRoutesInfo = { ...routesInfo };
 
-          // Group rows by route
           const routeGroups = {};
           rows.forEach(r => {
             const route = getRouteName(r) || 'Spoke';
@@ -93,10 +236,8 @@ export default function App() {
             routeGroups[route].push(r);
           });
 
-          // Compute totals per route
           Object.entries(routeGroups).forEach(([route, rowsForRoute]) => {
             const totals = computeTotalsFromRows(rowsForRoute, globalConsignments.current);
-
             if (!newRoutesInfo[route]) {
               newRoutesInfo[route] = { totals: { ...totals }, rows: [...rowsForRoute] };
             } else {
@@ -111,7 +252,6 @@ export default function App() {
 
           setRoutesInfo(newRoutesInfo);
 
-          // Update grand totals
           const newGrand = Object.values(newRoutesInfo).reduce((acc, cur) => {
             acc.ambient += cur.totals.ambient;
             acc.chilled += cur.totals.chilled;
@@ -143,79 +283,17 @@ export default function App() {
     globalConsignments.current.clear();
   }
 
-  const tableStyle = { width: '100%', borderCollapse: 'collapse', marginTop: 16 };
-  const thStyle = { padding: '8px', borderBottom: '1px solid #ddd', textAlign: 'left' };
-  const tdStyle = { padding: '8px', borderBottom: '1px solid #f0f0f0' };
-
   return (
-    <div style={{ fontFamily: 'system-ui, Arial', padding: 24, maxWidth: 980, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 24 }}>Totes Calculator</h1>
-
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 12 }}>
-        <input type="file" accept=".csv" multiple onChange={onFileChange} />
-        <button onClick={clearAll} disabled={Object.keys(routesInfo).length === 0} style={{ padding: '8px 12px' }}>
-          Clear uploaded data
-        </button>
+    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+      <HeaderComponent />
+      <div style={{ display: 'flex', flex: 1, marginTop: 80, justifyContent: 'flex-start' }}>
+        <DataComponent
+          routesInfo={routesInfo}
+          grandTotals={grandTotals}
+          onFileChange={onFileChange}
+          onClear={clearAll}
+        />
       </div>
-
-      {/* Routes Table */}
-      <section style={{ marginTop: 20 }}>
-        <h2 style={{ fontSize: 18 }}>Routes</h2>
-        {Object.keys(routesInfo).length === 0 && <p style={{ color: '#777' }}>No data available yet.</p>}
-        {Object.keys(routesInfo).length > 0 && (
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Route</th>
-                <th style={thStyle}>Ambient totes</th>
-                <th style={thStyle}>Chilled totes</th>
-                <th style={thStyle}>Freezer totes</th>
-                <th style={thStyle}>Total totes</th>
-                <th style={thStyle}>Duplicates included</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(routesInfo).map(([route, data], i) => (
-                <tr key={i}>
-                  <td style={tdStyle}>{route}</td>
-                  <td style={tdStyle}>{data.totals.ambient}</td>
-                  <td style={tdStyle}>{data.totals.chilled}</td>
-                  <td style={tdStyle}>{data.totals.freezer}</td>
-                  <td style={{ ...tdStyle, fontWeight: 600 }}>{data.totals.total}</td>
-                  <td style={{ ...tdStyle, color: data.totals.duplicateCount > 0 ? 'orange' : '#666' }}>
-                    {data.totals.duplicateCount > 0 ? `${data.totals.duplicateCount} duplicate${data.totals.duplicateCount > 1 ? 's' : ''}` : '—'}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </section>
-
-      {/* Grand Totals Table */}
-      {Object.keys(routesInfo).length > 0 && (
-        <section style={{ marginTop: 32 }}>
-          <h2 style={{ fontSize: 18 }}>Grand Totals</h2>
-          <table style={tableStyle}>
-            <thead>
-              <tr>
-                <th style={thStyle}>Ambient totes</th>
-                <th style={thStyle}>Chilled totes</th>
-                <th style={thStyle}>Freezer totes</th>
-                <th style={thStyle}>Total totes</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td style={tdStyle}>{grandTotals.ambient}</td>
-                <td style={tdStyle}>{grandTotals.chilled}</td>
-                <td style={tdStyle}>{grandTotals.freezer}</td>
-                <td style={{ ...tdStyle, fontWeight: 600 }}>{grandTotals.total}</td>
-              </tr>
-            </tbody>
-          </table>
-        </section>
-      )}
     </div>
   );
 }
