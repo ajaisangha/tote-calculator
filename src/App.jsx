@@ -1,10 +1,10 @@
-// App.jsx — updated: show duplicates with first occurrence and default to 'Spoke'
+// App.jsx — fixed: shows per-route totals and a separate grand totals table
 import React, { useState, useRef } from 'react';
 import Papa from 'papaparse';
 
 export default function App() {
   const [routesInfo, setRoutesInfo] = useState({});
-  const [grandTotals, setGrandTotals] = useState({ ambient: 0, chilled: 0, freezer: 0 });
+  const [grandTotals, setGrandTotals] = useState({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
   const globalConsignments = useRef(new Set());
 
   function parseToteCell(cell) {
@@ -19,11 +19,10 @@ export default function App() {
   }
 
   function computeTotalsFromRows(rows, seenGlobal) {
-    let ambient = 0, chilled = 0, freezer = 0;
-    let duplicateCount = 0;
+    let ambient = 0, chilled = 0, freezer = 0, duplicateCount = 0;
     const seenConsignments = new Set();
-
     const processedRows = [];
+
     rows.forEach(r => {
       const consignment = (r['Consignment'] || r['consignment'] || r['CONSignment'] || '').trim();
       if (!consignment) {
@@ -32,15 +31,16 @@ export default function App() {
       }
       if (seenConsignments.has(consignment) || seenGlobal.has(consignment)) {
         duplicateCount++;
-        processedRows.push(r); // include with first occurrence logic handled outside
-        return;
+        return; // skip duplicates
       }
       seenConsignments.add(consignment);
       seenGlobal.add(consignment);
       processedRows.push(r);
     });
 
-    const headers = processedRows.length > 0 ? Object.keys(processedRows[0]) : [];
+    if (processedRows.length === 0) return { ambient: 0, chilled: 0, freezer: 0, total: 0, duplicateCount };
+
+    const headers = Object.keys(processedRows[0]);
     const pickCol = (pattern) => headers.find(h => new RegExp(pattern, 'i').test(h));
     const ambientKey = pickCol('Completed\\s*Totes.*Ambient') || pickCol('ambient');
     const chilledKey = pickCol('Completed\\s*Totes.*Chilled') || pickCol('chill|chilled');
@@ -52,7 +52,7 @@ export default function App() {
       if (freezerKey) freezer += parseToteCell(r[freezerKey]);
     });
 
-    return { ambient, chilled, freezer, duplicateCount, rowsCount: rows.length };
+    return { ambient, chilled, freezer, total: ambient + chilled + freezer, duplicateCount };
   }
 
   function getRouteName(row) {
@@ -64,7 +64,6 @@ export default function App() {
     const dispatchTime = timeMatch ? timeMatch[1] : null;
 
     if (!dispatchTime) return 'Spoke';
-
     if (['11:15', '11:16', '11:17'].includes(dispatchTime)) return 'Ottawa Spoke';
     if (dispatchTime === '2:30') return 'Etobicoke Spoke 1';
     if (dispatchTime === '3:00') return 'Etobicoke Spoke 2';
@@ -86,29 +85,41 @@ export default function App() {
           const rows = results.data;
           const newRoutesInfo = { ...routesInfo };
 
+          // Group rows by route
+          const routeGroups = {};
           rows.forEach(r => {
-            const route = getRouteName(r);
-            if (!route) return;
-            const totals = computeTotalsFromRows([r], globalConsignments.current);
+            const route = getRouteName(r) || 'Spoke';
+            if (!routeGroups[route]) routeGroups[route] = [];
+            routeGroups[route].push(r);
+          });
+
+          // Compute totals per route
+          Object.entries(routeGroups).forEach(([route, rowsForRoute]) => {
+            const totals = computeTotalsFromRows(rowsForRoute, globalConsignments.current);
 
             if (!newRoutesInfo[route]) {
-              newRoutesInfo[route] = { totals: { ...totals }, rows: [r] };
+              newRoutesInfo[route] = { totals: { ...totals }, rows: [...rowsForRoute] };
             } else {
               newRoutesInfo[route].totals.ambient += totals.ambient;
               newRoutesInfo[route].totals.chilled += totals.chilled;
               newRoutesInfo[route].totals.freezer += totals.freezer;
+              newRoutesInfo[route].totals.total += totals.total;
               newRoutesInfo[route].totals.duplicateCount += totals.duplicateCount;
-              newRoutesInfo[route].rows.push(r);
+              newRoutesInfo[route].rows.push(...rowsForRoute);
             }
           });
 
           setRoutesInfo(newRoutesInfo);
+
+          // Update grand totals
           const newGrand = Object.values(newRoutesInfo).reduce((acc, cur) => {
             acc.ambient += cur.totals.ambient;
             acc.chilled += cur.totals.chilled;
             acc.freezer += cur.totals.freezer;
+            acc.total += cur.totals.total;
             return acc;
-          }, { ambient: 0, chilled: 0, freezer: 0 });
+          }, { ambient: 0, chilled: 0, freezer: 0, total: 0 });
+
           setGrandTotals(newGrand);
         },
         error: (err) => {
@@ -128,9 +139,13 @@ export default function App() {
 
   function clearAll() {
     setRoutesInfo({});
-    setGrandTotals({ ambient: 0, chilled: 0, freezer: 0 });
+    setGrandTotals({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
     globalConsignments.current.clear();
   }
+
+  const tableStyle = { width: '100%', borderCollapse: 'collapse', marginTop: 16 };
+  const thStyle = { padding: '8px', borderBottom: '1px solid #ddd', textAlign: 'left' };
+  const tdStyle = { padding: '8px', borderBottom: '1px solid #f0f0f0' };
 
   return (
     <div style={{ fontFamily: 'system-ui, Arial', padding: 24, maxWidth: 980, margin: '0 auto' }}>
@@ -143,45 +158,64 @@ export default function App() {
         </button>
       </div>
 
-      <section style={{ marginTop: 20, borderTop: '1px solid #eee', paddingTop: 16 }}>
+      {/* Routes Table */}
+      <section style={{ marginTop: 20 }}>
         <h2 style={{ fontSize: 18 }}>Routes</h2>
         {Object.keys(routesInfo).length === 0 && <p style={{ color: '#777' }}>No data available yet.</p>}
         {Object.keys(routesInfo).length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={tableStyle}>
             <thead>
-              <tr style={{ textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-                <th style={{ padding: '8px' }}>Route</th>
-                <th style={{ padding: '8px' }}>Ambient totes</th>
-                <th style={{ padding: '8px' }}>Chilled totes</th>
-                <th style={{ padding: '8px' }}>Freezer totes</th>
-                <th style={{ padding: '8px' }}>Duplicates included</th>
+              <tr>
+                <th style={thStyle}>Route</th>
+                <th style={thStyle}>Ambient totes</th>
+                <th style={thStyle}>Chilled totes</th>
+                <th style={thStyle}>Freezer totes</th>
+                <th style={thStyle}>Total totes</th>
+                <th style={thStyle}>Duplicates included</th>
               </tr>
             </thead>
             <tbody>
               {Object.entries(routesInfo).map(([route, data], i) => (
-                <tr key={i} style={{ borderBottom: '1px solid #f0f0f0' }}>
-                  <td style={{ padding: '8px' }}>{route}</td>
-                  <td style={{ padding: '8px' }}>{data.totals.ambient}</td>
-                  <td style={{ padding: '8px' }}>{data.totals.chilled}</td>
-                  <td style={{ padding: '8px' }}>{data.totals.freezer}</td>
-                  <td style={{ padding: '8px', color: data.totals.duplicateCount > 0 ? 'orange' : '#666' }}>
-                    {data.totals.duplicateCount > 0 ? `${data.totals.duplicateCount} duplicate${data.totals.duplicateCount>1?'s':''} ` : '—'}
+                <tr key={i}>
+                  <td style={tdStyle}>{route}</td>
+                  <td style={tdStyle}>{data.totals.ambient}</td>
+                  <td style={tdStyle}>{data.totals.chilled}</td>
+                  <td style={tdStyle}>{data.totals.freezer}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{data.totals.total}</td>
+                  <td style={{ ...tdStyle, color: data.totals.duplicateCount > 0 ? 'orange' : '#666' }}>
+                    {data.totals.duplicateCount > 0 ? `${data.totals.duplicateCount} duplicate${data.totals.duplicateCount > 1 ? 's' : ''}` : '—'}
                   </td>
                 </tr>
               ))}
             </tbody>
-            <tfoot>
-              <tr style={{ fontWeight: 700 }}>
-                <td style={{ padding: '8px' }}>Grand totals</td>
-                <td style={{ padding: '8px' }}>{grandTotals.ambient}</td>
-                <td style={{ padding: '8px' }}>{grandTotals.chilled}</td>
-                <td style={{ padding: '8px' }}>{grandTotals.freezer}</td>
-                <td></td>
-              </tr>
-            </tfoot>
           </table>
         )}
       </section>
+
+      {/* Grand Totals Table */}
+      {Object.keys(routesInfo).length > 0 && (
+        <section style={{ marginTop: 32 }}>
+          <h2 style={{ fontSize: 18 }}>Grand Totals</h2>
+          <table style={tableStyle}>
+            <thead>
+              <tr>
+                <th style={thStyle}>Ambient totes</th>
+                <th style={thStyle}>Chilled totes</th>
+                <th style={thStyle}>Freezer totes</th>
+                <th style={thStyle}>Total totes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={tdStyle}>{grandTotals.ambient}</td>
+                <td style={tdStyle}>{grandTotals.chilled}</td>
+                <td style={tdStyle}>{grandTotals.freezer}</td>
+                <td style={{ ...tdStyle, fontWeight: 600 }}>{grandTotals.total}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+      )}
     </div>
   );
 }
