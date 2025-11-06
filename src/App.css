@@ -19,43 +19,43 @@
   left: 0;
   width: 100%;
   height: 80px;
-  background-color: #4a90e2; /* Updated background color */
+  background: linear-gradient(135deg, #4a90e2, #6fb1fc); /* subtle gradient */
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
+  transition: background 0.3s ease;
 }
 
 .header-title {
   font-size: 32px;
   margin: 0;
-  color: white; /* Ensures title is visible on new background */
+  color: white;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2); /* subtle shadow for better contrast */
 }
 
 /* Card */
-/* Card */
 .data-card {
   flex: 1;
-  max-width: 1000px;       /* Increased width */
+  max-width: 1000px;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(145deg, #ffffff, #f0f0f3);
+  background: linear-gradient(145deg, #f0f4fc, #d9e6fc); /* updated gradient to match header */
   border-radius: 16px;
   box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), 0 6px 12px rgba(0, 0, 0, 0.10);
   padding: 32px;
   margin-top: 24px;
   margin-left: 32px;
   transition: transform 0.2s, box-shadow 0.2s;
-  height: auto;             /* Adaptive height */
-  max-height: 70vh;         /* Decreased maximum height */
+  height: auto;
+  max-height: 70vh; /* decreased height */
 }
 
 .data-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18), 0 10px 20px rgba(0, 0, 0, 0.12);
 }
-
 
 .data-title {
   font-size: 24px;
