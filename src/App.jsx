@@ -1,299 +1,253 @@
-import React, { useState, useRef } from 'react';
-import Papa from 'papaparse';
+import React, { useState, useEffect } from "react";
+import Papa from "papaparse";
+import { initializeApp } from "firebase/app";
+import {
+  getFirestore,
+  doc,
+  onSnapshot,
+  setDoc,
+  deleteDoc,
+} from "firebase/firestore";
 
-// Header component
-function HeaderComponent() {
+// --- Firebase Config ---
+const firebaseConfig = {
+  apiKey: "AIzaSyDbGd7qUUDgLo3HsrbsCbK8GySajQeKFu0",
+  authDomain: "tote-calculator.firebaseapp.com",
+  projectId: "tote-calculator",
+  storageBucket: "tote-calculator.firebasestorage.app",
+  messagingSenderId: "256755403923",
+  appId: "1:256755403923:web:1931c6e83190d77eaa1166",
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const DATA_DOC = doc(db, "totes", "data");
+
+// --- Header Component ---
+function Header() {
   return (
     <header
       style={{
-        position: 'fixed',
+        width: "100%",
+        background: "#1e293b",
+        color: "white",
+        textAlign: "center",
+        padding: "16px 0",
+        position: "fixed",
         top: 0,
         left: 0,
-        width: '100%',
-        height: 80,
-        backgroundColor: '#f5f5f5',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        zIndex: 1000
+        zIndex: 1000,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
       }}
     >
-      <h1 style={{ fontSize: '32px', margin: 0 }}>Totes Calculator</h1>
+      <h1 style={{ margin: 0, fontSize: "24px" }}>Totes Calculator</h1>
     </header>
   );
 }
 
-// Data component (with modern card & table styles)
-function DataComponent({ routesInfo, grandTotals, onFileChange, onClear }) {
-  return (
-    <div
-      style={{
-        flex: 1,
-        maxWidth: 800,
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
-        height: '80vh',
-        overflow: 'hidden',
-        padding: '32px', 
-        paddingTop: '32px', 
-        marginTop: 24, 
-        marginLeft: 24
-      }}
-    >
-      {/* Title */}
-      <h2 style={{ fontSize: 24, marginBottom: 16 }}>Totes Used</h2>
-
-      {/* File input + Clear */}
-      <div style={{ marginBottom: 16, flexShrink: 0 }}>
-        <input type="file" accept=".csv" multiple onChange={onFileChange} />
-        <button
-          onClick={onClear}
-          disabled={Object.keys(routesInfo).length === 0}
-          style={{
-            padding: '8px 14px',
-            marginLeft: 12,
-            borderRadius: 6,
-            border: 'none',
-            backgroundColor: '#007bff',
-            color: '#fff',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s'
-          }}
-        >
-          Clear uploaded data
-        </button>
-      </div>
-
-      {/* Scrollable Tables */}
-      <div style={{ flex: 1, overflow: 'auto' }}>
-        {Object.keys(routesInfo).length > 0 ? (
-          <div style={{ overflowX: 'auto' }}>
-            {/* Routes Table */}
-            <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 16 }}>
-              <thead>
-                <tr style={{ position: 'sticky', top: 0, backgroundColor: '#f9f9f9', zIndex: 1 }}>
-                  <th style={thStyle}>Route</th>
-                  <th style={thStyle}>Ambient totes</th>
-                  <th style={thStyle}>Chilled totes</th>
-                  <th style={thStyle}>Freezer totes</th>
-                  <th style={thStyle}>Total totes</th>
-                  <th style={thStyle}>Duplicates included</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.entries(routesInfo).map(([route, data], i) => (
-                  <tr
-                    key={i}
-                    style={{
-                      backgroundColor: i % 2 === 0 ? '#fafafa' : '#fff',
-                      transition: 'background-color 0.2s',
-                      cursor: 'default'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#e6f0ff')}
-                    onMouseLeave={(e) =>
-                      (e.currentTarget.style.backgroundColor = i % 2 === 0 ? '#fafafa' : '#fff')
-                    }
-                  >
-                    <td style={tdStyle}>{route}</td>
-                    <td style={tdStyle}>{data.totals.ambient}</td>
-                    <td style={tdStyle}>{data.totals.chilled}</td>
-                    <td style={tdStyle}>{data.totals.freezer}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{data.totals.total}</td>
-                    <td style={{ ...tdStyle, color: data.totals.duplicateCount > 0 ? 'orange' : '#666' }}>
-                      {data.totals.duplicateCount > 0
-                        ? `${data.totals.duplicateCount} duplicate${data.totals.duplicateCount > 1 ? 's' : ''}`
-                        : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            {/* Grand Totals Table */}
-            <section style={{ marginTop: 32 }}>
-              <h3 style={{ fontSize: 20 }}>Grand Totals</h3>
-              <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 8 }}>
-                <thead>
-                  <tr style={{ position: 'sticky', top: 0, backgroundColor: '#f9f9f9', zIndex: 1 }}>
-                    <th style={thStyle}>Ambient totes</th>
-                    <th style={thStyle}>Chilled totes</th>
-                    <th style={thStyle}>Freezer totes</th>
-                    <th style={thStyle}>Total totes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ backgroundColor: '#fafafa' }}>
-                    <td style={tdStyle}>{grandTotals.ambient}</td>
-                    <td style={tdStyle}>{grandTotals.chilled}</td>
-                    <td style={tdStyle}>{grandTotals.freezer}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{grandTotals.total}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </section>
-          </div>
-        ) : (
-          <p style={{ color: '#777' }}>No data available yet.</p>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// Styles for table cells
-const thStyle = { padding: '10px 12px', borderBottom: '1px solid #ddd', textAlign: 'left' };
-const tdStyle = { padding: '10px 12px', borderBottom: '1px solid #eee' };
-
-// Main App component
+// --- Main App ---
 export default function App() {
-  const [routesInfo, setRoutesInfo] = useState({});
+  const [rows, setRows] = useState([]); // each row: {consignment, ambient, chilled, freezer}
+  const [loading, setLoading] = useState(true);
   const [grandTotals, setGrandTotals] = useState({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
-  const globalConsignments = useRef(new Set());
+  const [consignmentSet, setConsignmentSet] = useState(new Set());
 
-  function parseToteCell(cell) {
+  // --- Parse totes from cell
+  const parseToteCell = (cell) => {
     if (!cell && cell !== 0) return 0;
     const str = String(cell).trim();
-    if (str === '') return 0;
+    if (str === "") return 0;
     const matches = str.match(/-?\d+/g);
     if (!matches) return 0;
-    const nums = matches.map(n => parseInt(n, 10)).filter(n => !Number.isNaN(n));
-    if (nums.length === 0) return 0;
-    return Math.max(...nums.map(n => Math.abs(n)));
-  }
+    const nums = matches.map((n) => parseInt(n, 10)).filter((n) => !Number.isNaN(n));
+    return nums.length ? Math.max(...nums.map(Math.abs)) : 0;
+  };
 
-  function computeTotalsFromRows(rows, seenGlobal) {
-    let ambient = 0, chilled = 0, freezer = 0, duplicateCount = 0;
-    const seenConsignments = new Set();
-    const processedRows = [];
+  // --- Get CSV column keys
+  const getColumnKeys = (headers) => {
+    const pickCol = (pattern) => headers.find((h) => new RegExp(pattern, "i").test(h));
+    return {
+      ambientKey: pickCol("Completed\\s*Totes.*Ambient") || pickCol("ambient"),
+      chilledKey: pickCol("Completed\\s*Totes.*Chill") || pickCol("chill|chilled"),
+      freezerKey: pickCol("Completed\\s*Totes.*Freezer") || pickCol("freezer"),
+      consignmentKey: pickCol("Consignment") || pickCol("consignment"),
+    };
+  };
 
-    rows.forEach(r => {
-      const consignment = (r['Consignment'] || r['consignment'] || r['CONSignment'] || '').trim();
-      if (!consignment) {
-        processedRows.push(r);
-        return;
+  // --- Real-time Firestore listener ---
+  useEffect(() => {
+    const unsubscribe = onSnapshot(DATA_DOC, (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        const savedRows = data.rows || [];
+        setRows(savedRows);
+        setConsignmentSet(new Set(savedRows.map((r) => r.consignment)));
+
+        // Calculate totals
+        const totals = { ambient: 0, chilled: 0, freezer: 0, total: 0 };
+        savedRows.forEach((r) => {
+          totals.ambient += r.ambient;
+          totals.chilled += r.chilled;
+          totals.freezer += r.freezer;
+        });
+        totals.total = totals.ambient + totals.chilled + totals.freezer;
+        setGrandTotals(totals);
+      } else {
+        setRows([]);
+        setConsignmentSet(new Set());
+        setGrandTotals({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
       }
-      if (seenConsignments.has(consignment) || seenGlobal.has(consignment)) {
-        duplicateCount++;
-        return;
-      }
-      seenConsignments.add(consignment);
-      seenGlobal.add(consignment);
-      processedRows.push(r);
+      setLoading(false);
     });
 
-    if (processedRows.length === 0) return { ambient: 0, chilled: 0, freezer: 0, total: 0, duplicateCount };
+    return () => unsubscribe();
+  }, []);
 
-    const headers = Object.keys(processedRows[0]);
-    const pickCol = (pattern) => headers.find(h => new RegExp(pattern, 'i').test(h));
-    const ambientKey = pickCol('Completed\\s*Totes.*Ambient') || pickCol('ambient');
-    const chilledKey = pickCol('Completed\\s*Totes.*Chilled') || pickCol('chill|chilled');
-    const freezerKey = pickCol('Completed\\s*Totes.*Freezer') || pickCol('freezer');
-
-    processedRows.forEach(r => {
-      if (ambientKey) ambient += parseToteCell(r[ambientKey]);
-      if (chilledKey) chilled += parseToteCell(r[chilledKey]);
-      if (freezerKey) freezer += parseToteCell(r[freezerKey]);
-    });
-
-    return { ambient, chilled, freezer, total: ambient + chilled + freezer, duplicateCount };
-  }
-
-  function getRouteName(row) {
-    let dispatch = row['Dispatch time'] || row['dispatch time'] || row['Dispatch Time'] || '';
-    const shipment = row['Shipment'] || row['shipment'] || '';
-    if (/route-/i.test(shipment)) return 'Vans';
-    const timeMatch = dispatch.match(/(\d{1,2}:\d{2})/);
-    const dispatchTime = timeMatch ? timeMatch[1] : null;
-    if (!dispatchTime) return 'Spoke';
-    if (['11:15', '11:16', '11:17'].includes(dispatchTime)) return 'Ottawa Spoke';
-    if (dispatchTime === '2:30') return 'Etobicoke Spoke 1';
-    if (dispatchTime === '3:00') return 'Etobicoke Spoke 2';
-    if (dispatchTime === '5:30') return 'Etobicoke Spoke 3';
-    if (dispatchTime === '8:45') return 'Etobicoke Spoke 4';
-    if (dispatchTime === '9:15') return 'Etobicoke Spoke 5';
-    return 'Spoke';
-  }
-
-  function handleFiles(files) {
+  // --- Handle CSV Upload ---
+  const handleFiles = (files) => {
     const arr = Array.from(files);
-    arr.forEach(file => {
+    arr.forEach((file) => {
       Papa.parse(file, {
         header: true,
         skipEmptyLines: true,
-        transformHeader: h => h.trim(),
-        complete: (results) => {
-          const rows = results.data;
-          const newRoutesInfo = { ...routesInfo };
+        transformHeader: (h) => h.trim(),
+        complete: async (results) => {
+          const dataRows = results.data;
+          if (!dataRows.length) return;
 
-          const routeGroups = {};
-          rows.forEach(r => {
-            const route = getRouteName(r) || 'Spoke';
-            if (!routeGroups[route]) routeGroups[route] = [];
-            routeGroups[route].push(r);
+          const headers = Object.keys(dataRows[0]);
+          const { ambientKey, chilledKey, freezerKey, consignmentKey } = getColumnKeys(headers);
+
+          const newRows = [];
+          const newConsignments = new Set(consignmentSet);
+
+          dataRows.forEach((r) => {
+            const consignment = (r[consignmentKey] || "").trim();
+            if (!consignment || newConsignments.has(consignment)) return;
+
+            newConsignments.add(consignment);
+            newRows.push({
+              consignment,
+              ambient: ambientKey ? parseToteCell(r[ambientKey]) : 0,
+              chilled: chilledKey ? parseToteCell(r[chilledKey]) : 0,
+              freezer: freezerKey ? parseToteCell(r[freezerKey]) : 0,
+            });
           });
 
-          Object.entries(routeGroups).forEach(([route, rowsForRoute]) => {
-            const totals = computeTotalsFromRows(rowsForRoute, globalConsignments.current);
-            if (!newRoutesInfo[route]) {
-              newRoutesInfo[route] = { totals: { ...totals }, rows: [...rowsForRoute] };
-            } else {
-              newRoutesInfo[route].totals.ambient += totals.ambient;
-              newRoutesInfo[route].totals.chilled += totals.chilled;
-              newRoutesInfo[route].totals.freezer += totals.freezer;
-              newRoutesInfo[route].totals.total += totals.total;
-              newRoutesInfo[route].totals.duplicateCount += totals.duplicateCount;
-              newRoutesInfo[route].rows.push(...rowsForRoute);
+          if (newRows.length) {
+            const updatedRows = [...rows, ...newRows];
+            try {
+              await setDoc(DATA_DOC, { rows: updatedRows });
+            } catch (err) {
+              console.error("Firestore upload error:", err);
             }
-          });
-
-          setRoutesInfo(newRoutesInfo);
-
-          const newGrand = Object.values(newRoutesInfo).reduce((acc, cur) => {
-            acc.ambient += cur.totals.ambient;
-            acc.chilled += cur.totals.chilled;
-            acc.freezer += cur.totals.freezer;
-            acc.total += cur.totals.total;
-            return acc;
-          }, { ambient: 0, chilled: 0, freezer: 0, total: 0 });
-
-          setGrandTotals(newGrand);
+          }
         },
-        error: (err) => {
-          console.error('Failed to parse', file.name, err);
-          alert(`Failed to parse ${file.name}: ${err}`);
-        }
       });
     });
-  }
+  };
 
-  function onFileChange(e) {
+  const onFileChange = (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
     handleFiles(files);
     e.target.value = null;
-  }
+  };
 
-  function clearAll() {
-    setRoutesInfo({});
-    setGrandTotals({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
-    globalConsignments.current.clear();
-  }
+  const clearAll = async () => {
+    try {
+      await deleteDoc(DATA_DOC);
+    } catch (err) {
+      console.error("Firestore clear error:", err);
+    }
+  };
+
+  if (loading) return <p style={{ marginTop: 120, textAlign: "center" }}>Loading...</p>;
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <HeaderComponent />
-      <div style={{ display: 'flex', flex: 1, marginTop: 80, justifyContent: 'flex-start' }}>
-        <DataComponent
-          routesInfo={routesInfo}
-          grandTotals={grandTotals}
-          onFileChange={onFileChange}
-          onClear={clearAll}
-        />
-      </div>
+    <div>
+      <Header />
+      <main style={{ display: "flex", marginTop: 100 }}>
+        <section
+          style={{
+            flex: 1,
+            padding: 32,
+            paddingTop: 32,
+            marginTop: 24,
+            marginLeft: 24,
+            background: "white",
+            borderRadius: 12,
+            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+          }}
+        >
+          <h2 style={{ fontSize: 22, marginBottom: 16 }}>Totes Used</h2>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
+            <input type="file" accept=".csv" multiple onChange={onFileChange} />
+            <button
+              onClick={clearAll}
+              disabled={rows.length === 0}
+              style={{ padding: "8px 12px" }}
+            >
+              Clear uploaded data
+            </button>
+          </div>
+
+          {rows.length === 0 ? (
+            <p style={{ color: "#777" }}>No data available yet.</p>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f3f4f6" }}>
+                    <th style={{ padding: 8 }}>Consignment</th>
+                    <th style={{ padding: 8 }}>Ambient</th>
+                    <th style={{ padding: 8 }}>Chilled</th>
+                    <th style={{ padding: 8 }}>Freezer</th>
+                    <th style={{ padding: 8 }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((r, i) => (
+                    <tr
+                      key={i}
+                      style={{ background: i % 2 === 0 ? "#fafafa" : "#fff" }}
+                    >
+                      <td style={{ padding: 8 }}>{r.consignment}</td>
+                      <td style={{ padding: 8 }}>{r.ambient}</td>
+                      <td style={{ padding: 8 }}>{r.chilled}</td>
+                      <td style={{ padding: 8 }}>{r.freezer}</td>
+                      <td style={{ padding: 8, fontWeight: 600 }}>
+                        {r.ambient + r.chilled + r.freezer}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              <h3 style={{ marginTop: 24 }}>Grand Totals</h3>
+              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                <thead>
+                  <tr style={{ background: "#f3f4f6" }}>
+                    <th style={{ padding: 8 }}>Ambient</th>
+                    <th style={{ padding: 8 }}>Chilled</th>
+                    <th style={{ padding: 8 }}>Freezer</th>
+                    <th style={{ padding: 8 }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr style={{ background: "#fafafa" }}>
+                    <td style={{ padding: 8 }}>{grandTotals.ambient}</td>
+                    <td style={{ padding: 8 }}>{grandTotals.chilled}</td>
+                    <td style={{ padding: 8 }}>{grandTotals.freezer}</td>
+                    <td style={{ padding: 8, fontWeight: 600 }}>{grandTotals.total}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      </main>
     </div>
   );
 }
