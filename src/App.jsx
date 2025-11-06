@@ -55,7 +55,7 @@ function getRouteName(row, shipmentKey, dispatchKey) {
   const shipment = row[shipmentKey] || "";
   const dispatch = row[dispatchKey] || "";
 
-  if (/route-/i.test(shipment)) return "Vans"; // Explicit vans
+  if (/route-/i.test(shipment)) return "Vans"; // Explicit Vans
 
   const timeMatch = dispatch.match(/(\d{1,2}:\d{2})/);
   const dispatchTime = timeMatch ? timeMatch[1] : null;
@@ -69,7 +69,7 @@ function getRouteName(row, shipmentKey, dispatchKey) {
   if (dispatchTime === "8:45") return "Etobicoke 4";
   if (dispatchTime === "9:15") return "Etobicoke 5";
 
-  return "Spoke"; // default for any other
+  return "Spoke"; // default
 }
 
 // --- Main App ---
