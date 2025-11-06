@@ -70,6 +70,7 @@ export default function App() {
   const [consignmentSet, setConsignmentSet] = useState(new Set());
   const [routesInfo, setRoutesInfo] = useState({});
   const [grandTotals, setGrandTotals] = useState({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
+  const [duplicateMessage, setDuplicateMessage] = useState("");
 
   // --- Parse tote cells
   const parseToteCell = (cell) => {
@@ -147,10 +148,14 @@ export default function App() {
 
           const newRows = [];
           const newConsignments = new Set(consignmentSet);
+          let duplicatesDetected = 0;
 
           dataRows.forEach((r) => {
             const consignment = (r[consignmentKey] || "").trim();
-            if (!consignment || newConsignments.has(consignment)) return;
+            if (!consignment || newConsignments.has(consignment)) {
+              if (consignment) duplicatesDetected++;
+              return;
+            }
 
             newConsignments.add(consignment);
             const route = getRouteName(r);
@@ -162,6 +167,11 @@ export default function App() {
               freezer: freezerKey ? parseToteCell(r[freezerKey]) : 0,
             });
           });
+
+          if (duplicatesDetected > 0) {
+            setDuplicateMessage(`${duplicatesDetected} duplicate line${duplicatesDetected > 1 ? "s" : ""} ignored`);
+            setTimeout(() => setDuplicateMessage(""), 5000); // remove message after 5s
+          }
 
           if (newRows.length) {
             try {
@@ -209,7 +219,7 @@ export default function App() {
           }}
         >
           <h2 style={{ fontSize: 22, marginBottom: 16 }}>Totes Used</h2>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 16 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
             <input type="file" accept=".csv" multiple onChange={onFileChange} />
             <button
               onClick={clearAll}
@@ -219,11 +229,12 @@ export default function App() {
               Clear uploaded data
             </button>
           </div>
+          {duplicateMessage && <p style={{ color: "orange", marginTop: 4 }}>{duplicateMessage}</p>}
 
           {Object.keys(routesInfo).length === 0 ? (
-            <p style={{ color: "#777" }}>No data available yet.</p>
+            <p style={{ color: "#777", marginTop: 16 }}>No data available yet.</p>
           ) : (
-            <div style={{ overflowX: "auto" }}>
+            <div style={{ overflowX: "auto", marginTop: 16 }}>
               <table style={{ width: "100%", borderCollapse: "collapse" }}>
                 <thead>
                   <tr style={{ background: "#f3f4f6" }}>
