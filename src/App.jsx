@@ -1,13 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Papa from "papaparse";
 import { initializeApp } from "firebase/app";
-import {
-  getFirestore,
-  doc,
-  onSnapshot,
-  setDoc,
-  deleteDoc,
-} from "firebase/firestore";
+import { getFirestore, doc, onSnapshot, setDoc, deleteDoc } from "firebase/firestore";
+import "./App.css";
 
 // --- Firebase Config ---
 const firebaseConfig = {
@@ -27,26 +22,13 @@ const DATA_DOC = doc(db, "totes", "data");
 // --- Header Component ---
 function Header() {
   return (
-    <header
-      style={{
-        width: "100%",
-        background: "#1e293b",
-        color: "white",
-        textAlign: "center",
-        padding: "16px 0",
-        position: "fixed",
-        top: 0,
-        left: 0,
-        zIndex: 1000,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-      }}
-    >
-      <h1 style={{ margin: 0, fontSize: "24px" }}>Totes Calculator</h1>
+    <header className="header">
+      <h1 className="header-title">Totes Calculator</h1>
     </header>
   );
 }
 
-// --- Route Calculation ---
+// --- Helper Functions ---
 function getRouteName(row) {
   let dispatch = row["Dispatch time"] || row["dispatch time"] || row["Dispatch Time"] || "";
   const shipment = row["Shipment"] || row["shipment"] || "";
@@ -63,37 +45,36 @@ function getRouteName(row) {
   return "Spoke";
 }
 
+function parseToteCell(cell) {
+  if (!cell && cell !== 0) return 0;
+  const str = String(cell).trim();
+  if (str === "") return 0;
+  const matches = str.match(/-?\d+/g);
+  if (!matches) return 0;
+  const nums = matches.map((n) => parseInt(n, 10)).filter((n) => !Number.isNaN(n));
+  return nums.length ? Math.max(...nums.map(Math.abs)) : 0;
+}
+
+function getColumnKeys(headers) {
+  const pickCol = (pattern) => headers.find((h) => new RegExp(pattern, "i").test(h));
+  return {
+    consignmentKey: pickCol("Consignment") || pickCol("consignment"),
+    ambientKey: pickCol("Completed\\s*Totes.*Ambient") || pickCol("ambient"),
+    chilledKey: pickCol("Completed\\s*Totes.*Chill") || pickCol("chill|chilled"),
+    freezerKey: pickCol("Completed\\s*Totes.*Freezer") || pickCol("freezer"),
+  };
+}
+
 // --- Main App ---
 export default function App() {
-  const [rows, setRows] = useState([]); // {consignment, route, ambient, chilled, freezer}
+  const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [consignmentSet, setConsignmentSet] = useState(new Set());
   const [routesInfo, setRoutesInfo] = useState({});
   const [grandTotals, setGrandTotals] = useState({ ambient: 0, chilled: 0, freezer: 0, total: 0 });
   const [duplicateMessage, setDuplicateMessage] = useState("");
 
-  // --- Parse tote cells
-  const parseToteCell = (cell) => {
-    if (!cell && cell !== 0) return 0;
-    const str = String(cell).trim();
-    if (str === "") return 0;
-    const matches = str.match(/-?\d+/g);
-    if (!matches) return 0;
-    const nums = matches.map((n) => parseInt(n, 10)).filter((n) => !Number.isNaN(n));
-    return nums.length ? Math.max(...nums.map(Math.abs)) : 0;
-  };
-
-  const getColumnKeys = (headers) => {
-    const pickCol = (pattern) => headers.find((h) => new RegExp(pattern, "i").test(h));
-    return {
-      consignmentKey: pickCol("Consignment") || pickCol("consignment"),
-      ambientKey: pickCol("Completed\\s*Totes.*Ambient") || pickCol("ambient"),
-      chilledKey: pickCol("Completed\\s*Totes.*Chill") || pickCol("chill|chilled"),
-      freezerKey: pickCol("Completed\\s*Totes.*Freezer") || pickCol("freezer"),
-    };
-  };
-
-  // --- Real-time Firestore sync
+  // --- Firestore real-time sync
   useEffect(() => {
     const unsubscribe = onSnapshot(DATA_DOC, (docSnap) => {
       if (docSnap.exists()) {
@@ -132,7 +113,7 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // --- Handle CSV upload
+  // --- Handle CSV Upload
   const handleFiles = (files) => {
     Array.from(files).forEach((file) => {
       Papa.parse(file, {
@@ -170,7 +151,7 @@ export default function App() {
 
           if (duplicatesDetected > 0) {
             setDuplicateMessage(`${duplicatesDetected} duplicate line${duplicatesDetected > 1 ? "s" : ""} ignored`);
-            setTimeout(() => setDuplicateMessage(""), 5000); // remove message after 5s
+            setTimeout(() => setDuplicateMessage(""), 5000);
           }
 
           if (newRows.length) {
@@ -203,86 +184,73 @@ export default function App() {
   if (loading) return <p style={{ marginTop: 120, textAlign: "center" }}>Loading...</p>;
 
   return (
-    <div>
+    <div className="app-container">
       <Header />
-      <main style={{ display: "flex", marginTop: 100 }}>
-        <section
-          style={{
-            flex: 1,
-            padding: 32,
-            paddingTop: 32,
-            marginTop: 24,
-            marginLeft: 24,
-            background: "white",
-            borderRadius: 12,
-            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          }}
-        >
-          <h2 style={{ fontSize: 22, marginBottom: 16 }}>Totes Used</h2>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 8 }}>
+      <div className="content">
+        <section className="data-card adaptive-card">
+          <h2 className="data-title">Totes Used</h2>
+          <div className="file-controls">
             <input type="file" accept=".csv" multiple onChange={onFileChange} />
-            <button
-              onClick={clearAll}
-              disabled={rows.length === 0}
-              style={{ padding: "8px 12px" }}
-            >
+            <button onClick={clearAll} disabled={rows.length === 0} className="clear-btn">
               Clear uploaded data
             </button>
           </div>
-          {duplicateMessage && <p style={{ color: "orange", marginTop: 4 }}>{duplicateMessage}</p>}
+          {duplicateMessage && <p className="duplicate-warning">{duplicateMessage}</p>}
 
           {Object.keys(routesInfo).length === 0 ? (
-            <p style={{ color: "#777", marginTop: 16 }}>No data available yet.</p>
+            <p className="no-data">No data available yet.</p>
           ) : (
-            <div style={{ overflowX: "auto", marginTop: 16 }}>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <div className="table-container">
+              <table className="data-table">
                 <thead>
-                  <tr style={{ background: "#f3f4f6" }}>
-                    <th style={{ padding: 8 }}>Route</th>
-                    <th style={{ padding: 8 }}>Ambient</th>
-                    <th style={{ padding: 8 }}>Chilled</th>
-                    <th style={{ padding: 8 }}>Freezer</th>
-                    <th style={{ padding: 8 }}>Total</th>
-                    <th style={{ padding: 8 }}>Rows</th>
+                  <tr>
+                    <th>Route</th>
+                    <th>Ambient</th>
+                    <th>Chilled</th>
+                    <th>Freezer</th>
+                    <th>Total</th>
+                    <th>Rows</th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(routesInfo).map(([route, data], i) => (
-                    <tr key={i} style={{ background: i % 2 === 0 ? "#fafafa" : "#fff" }}>
-                      <td style={{ padding: 8 }}>{route}</td>
-                      <td style={{ padding: 8 }}>{data.totals.ambient}</td>
-                      <td style={{ padding: 8 }}>{data.totals.chilled}</td>
-                      <td style={{ padding: 8 }}>{data.totals.freezer}</td>
-                      <td style={{ padding: 8, fontWeight: 600 }}>{data.totals.total}</td>
-                      <td style={{ padding: 8 }}>{data.rows.length}</td>
+                    <tr key={i}>
+                      <td>{route}</td>
+                      <td>{data.totals.ambient}</td>
+                      <td>{data.totals.chilled}</td>
+                      <td>{data.totals.freezer}</td>
+                      <td className="bold">{data.totals.total}</td>
+                      <td>{data.rows.length}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              <h3 style={{ marginTop: 24 }}>Grand Totals</h3>
-              <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ background: "#f3f4f6" }}>
-                    <th style={{ padding: 8 }}>Ambient</th>
-                    <th style={{ padding: 8 }}>Chilled</th>
-                    <th style={{ padding: 8 }}>Freezer</th>
-                    <th style={{ padding: 8 }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr style={{ background: "#fafafa" }}>
-                    <td style={{ padding: 8 }}>{grandTotals.ambient}</td>
-                    <td style={{ padding: 8 }}>{grandTotals.chilled}</td>
-                    <td style={{ padding: 8 }}>{grandTotals.freezer}</td>
-                    <td style={{ padding: 8, fontWeight: 600 }}>{grandTotals.total}</td>
-                  </tr>
-                </tbody>
-              </table>
+              <div className="grand-totals">
+                <h3>Grand Totals</h3>
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Ambient</th>
+                      <th>Chilled</th>
+                      <th>Freezer</th>
+                      <th>Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>{grandTotals.ambient}</td>
+                      <td>{grandTotals.chilled}</td>
+                      <td>{grandTotals.freezer}</td>
+                      <td className="bold">{grandTotals.total}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </section>
-      </main>
+      </div>
     </div>
   );
 }

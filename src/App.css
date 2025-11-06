@@ -131,3 +131,9 @@
 .grand-totals {
   margin-top: 32px;
 }
+
+/* Adaptive card */
+.adaptive-card {
+  max-height: calc(100vh - 100px); /* viewport minus header and margins */
+  overflow-y: auto; /* scroll inside card if content overflows */
+}
