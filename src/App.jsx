@@ -55,7 +55,7 @@ function getRouteName(row, shipmentKey, dispatchKey) {
   const shipment = row[shipmentKey] || "";
   const dispatch = row[dispatchKey] || "";
 
-  if (/route-/i.test(shipment)) return "Vans"; // Explicit Vans
+  if (/route-/i.test(shipment)) return "Vans";
 
   const timeMatch = dispatch.match(/(\d{1,2}:\d{2})/);
   const dispatchTime = timeMatch ? timeMatch[1] : null;
@@ -69,7 +69,7 @@ function getRouteName(row, shipmentKey, dispatchKey) {
   if (dispatchTime === "8:45") return "Etobicoke 4";
   if (dispatchTime === "9:15") return "Etobicoke 5";
 
-  return "Spoke"; // default
+  return "Spoke";
 }
 
 // --- Main App ---
@@ -82,14 +82,10 @@ export default function App() {
   const [duplicateMessage, setDuplicateMessage] = useState("");
 
   // Bagged Totes state
-  const [baggedData, setBaggedData] = useState({
-    ambientReceived: 0,
-    chilledReceived: 0,
-    currentAmbient: 0,
-    currentChilled: 0,
-    baggedAmbient: 0,
-    baggedChilled: 0,
-  });
+  const [receivedAmbient, setReceivedAmbient] = useState("");
+  const [receivedChill, setReceivedChill] = useState("");
+  const [currentAmbient, setCurrentAmbient] = useState("");
+  const [currentChill, setCurrentChill] = useState("");
 
   // Firestore real-time sync
   useEffect(() => {
@@ -105,6 +101,7 @@ export default function App() {
         savedRows.forEach((r) => {
           if (!routeMap[r.route])
             routeMap[r.route] = { totals: { ambient: 0, chilled: 0, freezer: 0, total: 0 }, rows: [] };
+
           routeMap[r.route].totals.ambient += r.ambient;
           routeMap[r.route].totals.chilled += r.chilled;
           routeMap[r.route].totals.freezer += r.freezer;
@@ -200,18 +197,10 @@ export default function App() {
     }
   };
 
-  // --- Bagged Totals Calculation ---
-  useEffect(() => {
-    const usedAmbient = grandTotals.ambient;
-    const usedChilled = grandTotals.chilled;
-    const { ambientReceived, chilledReceived, currentAmbient, currentChilled } = baggedData;
-
-    setBaggedData((prev) => ({
-      ...prev,
-      baggedAmbient: currentAmbient + usedAmbient - ambientReceived,
-      baggedChilled: currentChilled + usedChilled - chilledReceived,
-    }));
-  }, [grandTotals, baggedData.ambientReceived, baggedData.chilledReceived, baggedData.currentAmbient, baggedData.currentChilled]);
+  // Bagged Totes calculations
+  const baggedAmbient = (parseInt(currentAmbient, 10) || 0) + (grandTotals.ambient || 0) - (parseInt(receivedAmbient, 10) || 0);
+  const baggedChill = (parseInt(currentChill, 10) || 0) + (grandTotals.chilled || 0) - (parseInt(receivedChill, 10) || 0);
+  const totalBagged = baggedAmbient + baggedChill;
 
   if (loading) return <p style={{ marginTop: 120, textAlign: "center" }}>Loading...</p>;
 
@@ -219,7 +208,7 @@ export default function App() {
     <div className="app-container">
       <Header />
       <div className="content">
-        {/* --- Totes Used Card --- */}
+        {/* Totes Used Card */}
         <section className="data-card adaptive-card">
           <h2 className="data-title">Totes Used</h2>
           <div className="file-controls">
@@ -257,7 +246,6 @@ export default function App() {
                   ))}
                 </tbody>
               </table>
-
               <div className="grand-totals">
                 <h3>Grand Totals</h3>
                 <table className="data-table">
@@ -283,49 +271,61 @@ export default function App() {
           )}
         </section>
 
-        {/* --- Bagged Totes Card --- */}
-        <section className="data-card adaptive-card">
+        {/* Bagged Totes Card */}
+        <section className="data-card bagged-card">
           <h2 className="data-title">Bagged Totes</h2>
+
           <div className="bagged-fields">
             <div className="bagged-row">
-              <label>Ambient totes received:</label>
+              <span>Ambient totes received:</span>
               <input
                 type="number"
-                value={baggedData.ambientReceived}
-                onChange={(e) => setBaggedData((prev) => ({ ...prev, ambientReceived: Number(e.target.value) }))}
+                value={receivedAmbient}
+                onChange={(e) => setReceivedAmbient(e.target.value)}
               />
             </div>
             <div className="bagged-row">
-              <label>Chill totes received:</label>
+              <span>Chill totes received:</span>
               <input
                 type="number"
-                value={baggedData.chilledReceived}
-                onChange={(e) => setBaggedData((prev) => ({ ...prev, chilledReceived: Number(e.target.value) }))}
+                value={receivedChill}
+                onChange={(e) => setReceivedChill(e.target.value)}
               />
             </div>
             <div className="bagged-row">
-              <label>Current totes in Hive (Bagged Ambient):</label>
+              <span>Current totes in hive bagged ambient:</span>
               <input
                 type="number"
-                value={baggedData.currentAmbient}
-                onChange={(e) => setBaggedData((prev) => ({ ...prev, currentAmbient: Number(e.target.value) }))}
+                value={currentAmbient}
+                onChange={(e) => setCurrentAmbient(e.target.value)}
               />
             </div>
             <div className="bagged-row">
-              <label>Current totes in Hive (Bagged Chill):</label>
+              <span>Current totes in hive bagged chill:</span>
               <input
                 type="number"
-                value={baggedData.currentChilled}
-                onChange={(e) => setBaggedData((prev) => ({ ...prev, currentChilled: Number(e.target.value) }))}
+                value={currentChill}
+                onChange={(e) => setCurrentChill(e.target.value)}
               />
             </div>
+          </div>
 
-            <div className="bagged-result">
-              <p>Bagged Ambient Totes: {baggedData.baggedAmbient}</p>
-              <p>Bagged Chill Totes: {baggedData.baggedChilled}</p>
+          <div className="bagged-result">
+            <div className="result-line">
+              <span>Bagged Ambient Totes:</span>
+              <span>{baggedAmbient}</span>
+            </div>
+            <div className="result-line">
+              <span>Bagged Chill Totes:</span>
+              <span>{baggedChill}</span>
+            </div>
+            <div className="result-line">
+              <span>Total Bagged Totes:</span>
+              <span>{totalBagged}</span>
             </div>
           </div>
         </section>
+
       </div>
     </div>
   );
