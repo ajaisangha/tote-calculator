@@ -1,4 +1,4 @@
-/* App Layout */
+/* --- App Layout --- */
 .app-container {
   display: flex;
   flex-direction: column;
@@ -12,11 +12,10 @@
   margin-top: 80px;
   justify-content: flex-start;
   gap: 24px;
-  padding-left: 32px;
-  padding-bottom: 32px;
+  padding: 0 32px 32px 32px;
 }
 
-/* Header */
+/* --- Header --- */
 .header {
   position: fixed;
   top: 0;
@@ -27,7 +26,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   z-index: 1000;
 }
 
@@ -37,39 +36,39 @@
   color: white;
 }
 
-/* Card Base */
+/* --- Card Base --- */
 .data-card {
   flex: 1;
   background: linear-gradient(145deg, #f0f4fc, #d9e6fc);
   border-radius: 16px;
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15), 0 6px 12px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 12px 24px rgba(0,0,0,0.15), 0 6px 12px rgba(0,0,0,0.10);
   padding: 24px;
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .data-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.18), 0 10px 20px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.18), 0 10px 20px rgba(0,0,0,0.12);
 }
 
-/* Card Sizes */
+/* --- Card Sizes --- */
 .adaptive-card {
+  max-width: 1000px;
   height: auto;
+}
+
+.bagged-card {
+  flex: 2; /* wider than Totes Used card */
   max-width: 1000px;
 }
 
-.data-card.bagged-card {
-  flex: 2;
-  max-width: 1000px;
-}
-
-/* Titles */
+/* --- Titles --- */
 .data-title {
   font-size: 24px;
   margin-bottom: 16px;
 }
 
-/* File Controls */
+/* --- File Controls --- */
 .file-controls {
   margin-bottom: 16px;
 }
@@ -94,9 +93,9 @@
   cursor: not-allowed;
 }
 
-/* Tables */
+/* --- Tables --- */
 .table-container {
-  overflow: auto;
+  overflow-x: auto;
 }
 
 .data-table {
@@ -144,8 +143,7 @@
   margin-top: 24px;
 }
 
-/* Bagged Totes */
-/* Bagged Totes Card Fields Inline */
+/* --- Bagged Totes --- */
 .bagged-fields {
   display: flex;
   flex-direction: column;
@@ -154,29 +152,34 @@
 
 .bagged-row {
   display: flex;
-  justify-content: space-between; /* text left, input right */
+  justify-content: space-between;
   align-items: center;
-  gap: 16px; /* space between label and input */
+  gap: 12px; /* space between text and input */
+}
+
+.bagged-row span {
+  flex: 1;
+  font-weight: 500;
 }
 
 .bagged-row input {
+  width: 120px;
   padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid #ccc;
   font-size: 15px;
-  width: 120px; /* fixed width */
+  text-align: right;
 }
 
-/* Bagged Results */
 .bagged-result {
-  margin-top: 20px;
+  margin-top: 16px;
+  padding-top: 8px;
   border-top: 1px solid #ccc;
-  padding-top: 12px;
 }
 
-.bagged-card .result-line {
+.bagged-result .result-line {
   display: flex;
-  justify-content: space-between; /* same as inputs */
+  justify-content: space-between;
   gap: 12px;
   font-weight: 600;
   margin-top: 8px;
