@@ -6,6 +6,9 @@ import "./App.css";
 import CurrentBaggedTotesCard from "./CurrentBaggedTotesCard";
 import TotesUsedCard from "./TotesUsedCard";
 import BaggedTotesCard from "./BaggedTotesCard";
+import PickCalculatorCard from "./PickCalculatorCard";
+import PickAndBaggedCombinedCard from "./PickAndBaggedCombinedCard";
+
 
 // --- Firebase Config ---
 const firebaseConfig = {
@@ -26,7 +29,7 @@ const DATA_DOC = doc(db, "totes", "data");
 function Header() {
   return (
     <header className="header">
-      <h1 className="header-title">Totes Calculator</h1>
+      <h1 className="header-title">Calculator</h1>
     </header>
   );
 }
@@ -206,7 +209,8 @@ export default function App() {
           baggedChill={baggedChill}
           totalBagged={totalBagged}
         />
-        <CurrentBaggedTotesCard />
+        <PickAndBaggedCombinedCard />
+
       </div>
     </div>
   );
