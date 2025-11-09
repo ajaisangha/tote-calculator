@@ -172,7 +172,7 @@ export default function App() {
       {/* Navigation Links */}
       <nav className="carousel-links">
         <button onClick={() => setSlideIndex(0)} className={slideIndex===0 ? "active" : ""}>Totes Used</button>
-        <button onClick={() => setSlideIndex(1)} className={slideIndex===1 ? "active" : ""}>Bagged + Pick</button>
+        <button onClick={() => setSlideIndex(1)} className={slideIndex===1 ? "active" : ""}>Pick/Bag</button>
         <button onClick={() => setSlideIndex(2)} className={slideIndex===2 ? "active" : ""}>Shift EOS</button>
       </nav>
 

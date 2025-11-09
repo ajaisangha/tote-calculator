@@ -277,3 +277,54 @@
 .carousel .control-dots {
   display: none; /* hide default dots */
 }
+
+/* ShiftEOSCard adjustments to prevent scrolling */
+.shift-eos-card {
+  max-width: 700px;  /* reduced width to fit page */
+  margin: 0 auto;    /* center horizontally */
+  padding: 16px;
+}
+
+.shift-eos-table input {
+  width: 60px;       /* smaller input to fit in card */
+  padding: 4px 6px;
+  font-size: 13px;
+  text-align: right;
+  border-radius: 4px;
+  border: 1px solid #c9d1e0;
+}
+
+.shift-eos-table th, .shift-eos-table td {
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.shift-eos-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.shift-eos-table th, .shift-eos-table td {
+  border: 1px solid #e0e5ef;
+}
+
+.shift-eos-flex {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap; /* keep responsive */
+  justify-content: center;
+}
+
+.shift-table-container {
+  flex: 1;
+  min-width: 400px;
+  max-width: 550px;
+  overflow-x: auto;
+}
+
+.shift-calc-container {
+  flex: 1;
+  min-width: 350px;
+  max-width: 450px;
+  overflow-x: auto;
+}
