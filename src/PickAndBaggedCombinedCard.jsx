@@ -49,17 +49,49 @@ export default function PickAndBaggedCombinedCard() {
   const calculateProjected = (uph, pickers) => (parseFloat(uph) || 0) * (parseFloat(pickers) || 0);
 
   const calculateFinishTime = (outstanding, projected) => {
-    if (!projected || projected === 0) return "-";
-    const hoursNeeded = outstanding / projected;
-    const now = new Date();
-    const finishTime = new Date(now.getTime() + hoursNeeded * 60 * 60 * 1000);
-    const hours = finishTime.getHours();
-    const minutes = finishTime.getMinutes();
-    const ampm = hours >= 12 ? "PM" : "AM";
-    const displayHours = hours % 12 === 0 ? 12 : hours % 12;
-    const displayMinutes = minutes.toString().padStart(2, "0");
-    return `${displayHours}:${displayMinutes} ${ampm}`;
-  };
+  if (!projected || projected === 0) return "-";
+
+  const now = new Date();
+
+  // Extract today's date parts
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const day = now.getDate();
+
+  // Create today's 2:25 AM and 3:10 AM timestamps
+  const time225 = new Date(year, month, day, 2, 25, 0);
+  const time310 = new Date(year, month, day, 3, 10, 0);
+
+  // Calculate hours needed
+  const hoursNeeded = outstanding / projected; // no buffer yet
+
+  let finishTime;
+
+  // BEFORE 2:25 AM → add 45 minutes buffer
+  if (now < time225) {
+    finishTime = new Date(now.getTime() + hoursNeeded * 3600000 + 45 * 60000);
+  }
+
+  // AFTER 3:10 AM → no buffer
+  else if (now > time310) {
+    finishTime = new Date(now.getTime() + hoursNeeded * 3600000);
+  }
+
+  // BETWEEN 2:25 and 3:10 → lock start time at 3:10 AM
+  else {
+    finishTime = new Date(time310.getTime() + hoursNeeded * 3600000);
+  }
+
+  // Format AM/PM display
+  const hours = finishTime.getHours();
+  const minutes = finishTime.getMinutes();
+  const ampm = hours >= 12 ? "PM" : "AM";
+  const displayHours = hours % 12 === 0 ? 12 : hours % 12;
+  const displayMinutes = minutes.toString().padStart(2, "0");
+
+  return `${displayHours}:${displayMinutes} ${ampm}`;
+};
+
 
   // --- Bagged Totes Actions ---
   const calculateBaggedTotes = async () => {
@@ -133,7 +165,7 @@ export default function PickAndBaggedCombinedCard() {
         </div>
       </div>
 
-      <h2 className="data-title">Bagged Totes</h2>
+      <h2 className="data-title">Current Bagged Totes</h2>
       {/* --- Bagged Totes --- */}
       <div className="bagged-fields">
         {[
