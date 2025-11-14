@@ -112,11 +112,6 @@
 }
 
 /* --- Bagged Totes --- */
-.bagged-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 
 .bagged-row {
   display: flex;
@@ -139,11 +134,6 @@
   text-align: right;
 }
 
-.bagged-result {
-  margin-top: 16px;
-  padding-top: 8px;
-  border-top: 1px solid #ccc;
-}
 
 .bagged-result .result-line {
   display: flex;
@@ -153,6 +143,33 @@
   margin-top: 8px;
   font-size: 16px;
 }
+
+/* --- Bagged Totes Result --- */
+.bagged-card {
+  display: flex;
+  flex-direction: column;
+  max-height: 600px; /* total card max height */
+  padding: 24px;
+  overflow: hidden; /* prevents card overflow outside */
+}
+
+.bagged-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex-shrink: 0; /* prevent inputs from shrinking */
+}
+
+/* Make result section scroll internally if it grows too large */
+.bagged-result {
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1px solid #ccc;
+  flex-shrink: 1;
+  overflow-y: auto; /* scroll inside result if needed */
+  max-height: 150px; /* adjust as needed */
+}
+
 
 /* --- Pick Calculator --- */
 .pick-card .data-table {
