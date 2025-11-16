@@ -5,6 +5,72 @@
   min-height: 100vh;
 }
 
+/* -----------------------------------------------------------
+   UNIVERSAL DARK-MODE SAFE TEXT + INPUT FIX  
+   Ensures all cards & tables remain readable in dark mode
+------------------------------------------------------------ */
+
+/* Force app text color */
+body, .app-container {
+  color: #111 !important;
+}
+
+/* Ensure all card text stays dark */
+.data-card,
+.shift-subcard,
+.pick-card,
+.bagged-card {
+  color: #111 !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6,
+.data-title,
+.subcard-title {
+  color: #111 !important;
+}
+
+/* Table text */
+.data-table td,
+.data-table th,
+.compact-table td,
+.compact-table th {
+  color: #111 !important;
+}
+
+/* Inputs */
+input,
+input[type="number"],
+input[type="text"] {
+  color: #111 !important;
+  background: white !important;
+}
+
+/* Bagged totes labels */
+.bagged-row span {
+  color: #111 !important;
+}
+
+/* Result text */
+.bagged-result .result-line span {
+  color: #111 !important;
+}
+
+/* Buttons */
+button {
+  color: white !important;
+}
+
+/* Carousel buttons */
+.carousel-links button {
+  color: #007bff !important;
+}
+
+.carousel-links button.active,
+.carousel-links button:hover {
+  color: white !important;
+}
+
 /* --- Header --- */
 .header {
   position: fixed;
