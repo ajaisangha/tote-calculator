@@ -57,14 +57,18 @@ input[type="text"] {
 }
 
 /* Buttons */
-.dark-mode button {
-  color: white !important;
+/* Light Mode */
+body.light-mode button {
+  background: #f2f2f2;
+  color: #111;
 }
 
-button {
-  background-color: #007bff; /* or any color */
+/* Dark Mode */
+body.dark-mode button {
+  background: #333;
   color: white;
 }
+
 
 /* Carousel buttons */
 .carousel-links button {
